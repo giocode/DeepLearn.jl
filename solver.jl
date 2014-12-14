@@ -21,11 +21,12 @@ solver(m, s, mm) = GradientSolver(m, s, mm)
 immutable FitOptions
 	solver::GradientSolver
 	regularizer::String # L2Reg or maxNorm
-	earlyStop::Bool 
-	dropout::Bool
+	earlyStop::Bool     # Early stopping
+	dropout::Bool       # Dropout 
+	batchSize::Int      # mini-batch sample size
 end
 
-FitOptions() = FitOptions(solver(), "L2Reg", true, false)
+FitOptions() = FitOptions(solver(), "L2Reg", true, false,1)
 
 
 ## Regularizers 
