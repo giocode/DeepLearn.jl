@@ -12,7 +12,7 @@ immutable GradientSolver
 	  end 
 end
 
-solver() = GradientSolver("SGD", 0.1,0.0)
+solver() = GradientSolver("SGD", 0.01,0.0)
 solver(method) = GradientSolver(method, 0.1,0.0)
 solver(m, s, mm) = GradientSolver(m, s, mm)
 
