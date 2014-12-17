@@ -37,7 +37,6 @@ function extractSample(trainData)
 	X, y
 end
 
-
 ## Fitting functions 
 @debug function fit(nn::NeuralNet, X, y, options::FitOptions, maxIter::Int)
 
@@ -83,6 +82,7 @@ function updateWeights(nn::NeuralNet, Δ, x, yn, h)
 	C = nn.numOutputs
 	d = [nn.numInputs, reshape(nn.numHidden, length(nn.numHidden),1), nn.numOutputs]
 
+	# Step size
 	μ = 0.1
 
 	# yn is encoded as one-of-C vector
@@ -93,21 +93,19 @@ function updateWeights(nn::NeuralNet, Δ, x, yn, h)
 
 	# Gradient of error w.r.t weight matrix W[L] 
 	# assuming softmax output activation and cross-entropy error
-	# 
 	∇e_WL = zeros(Float64, d[L]+1,C)
 	for i in 1:d[L]+1
 	  for j in 1:C 
 			∇e_WL[i,j] = x[L][i] * (h[j] - yv[j]) 
 		end
 	end
-
 	# SGD update of weight matrix W[L]
 	nn.weights[L] = nn.weights[L] - μ * ∇e_WL
 
 	# Gradient of error w.r.t weight matrix @ input W[1] 
+	# Input has no bias node: W1 is d[1] x d[2] matrix
 	∇e_W1 = zeros(Float64, d[1],d[2])
 	for i in 1:d[1]
-
 	  for j in 1:C 
 			∇e_W1[i,j] = x[1][i] * dot(∇e_h, vec(Δ[1][:,j]))
 		end
@@ -117,14 +115,15 @@ function updateWeights(nn::NeuralNet, Δ, x, yn, h)
 	nn.weights[1] = nn.weights[1] - μ * ∇e_W1
 
 	# Gradient of error w.r.t weight matrices of hidden layers
-	for l = 2:L-1  # changed from 1:L-1
+	for l = 2:L-1  
 		# Gradient of error w.r.t weight matrix Wl
+		# x[l] has bias node: Wl is (d[l]+1) x d[l+1] matrix
 		∇e_Wl = zeros(Float64, d[l]+1, d[l+1])
-			for i in 1:d[l]+1
-				for j in 1:d[l+1] 
-					∇e_Wl[i,j] = x[l][i] * dot(∇e_h, vec(Δ[l][:,j]))
-				end
+		for i in 1:d[l]+1
+			for j in 1:d[l+1] 
+				∇e_Wl[i,j] = x[l][i] * dot(∇e_h, vec(Δ[l][:,j]))
 			end
+		end
 
 		# SGD update the weight matrices 
 		nn.weights[l] = nn.weights[l] - μ * ∇e_Wl
@@ -134,7 +133,6 @@ end
 
 ## Initialization of weights
 function initWeights (nn::NeuralNet, X::Array{Float64})
-
 	L = nn.numLayers
 	N = size(X,1)
 	d = [nn.numInputs, reshape(nn.numHidden, length(nn.numHidden),1), nn.numOutputs]
@@ -182,15 +180,16 @@ end
 
 	
 	# Compute input s[l] and output x[l+1] at each layer
-	x[1] = xn # Input has no bias node
+	# Input vector x[1] has no bias node
+	x[1] = xn 
+	# Hidden layers
   for l in 1:L-1
   	W = (nn.weights[l])
   	s[l] = W'*x[l] 
-  	x[l+1] = [1, map(tanh, s[l])]
+  	x[l+1] = [1, map(tanh, s[l])]   # use tanh
   end
-  
+  # Output layer
   s[L] = (nn.weights[L])' * x[L]
-  
   x[L+1] = if C == 1 
              logit(s[L])
            else 
@@ -228,16 +227,10 @@ end
 	# Sensitivy matrix for inner layers
 	for l = L-1:-1:1
 		Δ[l] = zeros(Float64, C, d[l+1]) 
-	
 		W = nn.weights[l+1]
-
 		for k in 1:C
 			for j in 1:d[l+1]
-				# assuming tanh activation function at hidden units
-				
-				# println("$k : $j")
-				# println("W: $(size(W)) - Δ : $(size(Δ[l+1]))")
-				
+				# assuming tanh activation function at hidden units				
 				Δ[l][k,j] = (1 - h[k]^2) * (W[j,:] * Δ[l+1][k,:]')[1]
 			end
 		end
@@ -252,7 +245,6 @@ end
 # return the maximum a posteriori probability and label of predicted class 
 @debug function predict(net::NeuralNet, xnew)
 	x,s = forwardPropagate(net, xnew)
-	
 	prob, class = findmax(x[end])
 end
 
